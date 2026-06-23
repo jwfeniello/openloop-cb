@@ -49,7 +49,14 @@ export default function Samples() {
   const playSong = (id:number) => {
     const file = data.results[id]
     if (!file) return;
-    const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "";
+    const getMediaBaseUrl = () => {
+      const url = process.env.NEXT_PUBLIC_MEDIA_URL || "";
+      if (url.includes("localhost") || url.includes("127.0.0.1") || url.includes("192.168") || url.includes("10.0.") || url.includes("172.")) {
+        return "";
+      }
+      return url;
+    };
+    const mediaBaseUrl = getMediaBaseUrl();
     const urlfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Sounds/" + file.category + "/" + file.file.split('/').pop()
     const coverfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Artworks/" + file.pack.cover.split('/').pop()
     const audiofile: AudioFile = {
