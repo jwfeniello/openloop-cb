@@ -145,7 +145,11 @@ MEDIA_ROOT = BASE_DIR / "mediafiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Media Files Cookie Trust
-CSRF_TRUSTED_ORIGINS = ["http://localhost:1337", "http://192.168.1.102:1337", "http://localhost:2337"]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:1337", "https://localhost:1337",
+    "http://192.168.1.102:1337", "https://192.168.1.102:1337",
+    "http://localhost:2337", "https://localhost:2337"
+]
 csrf_env = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS")
 if csrf_env:
     CSRF_TRUSTED_ORIGINS.extend(csrf_env.split(" "))
@@ -155,17 +159,20 @@ else:
         for host in allowed_hosts_env.split(" "):
             if host:
                 CSRF_TRUSTED_ORIGINS.append(f"http://{host}")
+                CSRF_TRUSTED_ORIGINS.append(f"https://{host}")
                 CSRF_TRUSTED_ORIGINS.append(f"http://{host}:1337")
+                CSRF_TRUSTED_ORIGINS.append(f"https://{host}:1337")
                 CSRF_TRUSTED_ORIGINS.append(f"http://{host}:2337")
+                CSRF_TRUSTED_ORIGINS.append(f"https://{host}:2337")
 
 # Project Specific Values
 
 # CORS
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://192.168.1.102:1337",
-    "http://localhost:2337",
+    "http://localhost:3000", "https://localhost:3000",
+    "http://127.0.0.1:3000", "https://127.0.0.1:3000",
+    "http://192.168.1.102:1337", "https://192.168.1.102:1337",
+    "http://localhost:2337", "https://localhost:2337",
 ]
 cors_env = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS")
 if cors_env:
@@ -176,8 +183,14 @@ else:
         for host in allowed_hosts_env.split(" "):
             if host:
                 CORS_ALLOWED_ORIGINS.append(f"http://{host}")
+                CORS_ALLOWED_ORIGINS.append(f"https://{host}")
                 CORS_ALLOWED_ORIGINS.append(f"http://{host}:1337")
+                CORS_ALLOWED_ORIGINS.append(f"https://{host}:1337")
                 CORS_ALLOWED_ORIGINS.append(f"http://{host}:2337")
+                CORS_ALLOWED_ORIGINS.append(f"https://{host}:2337")
+
+# Reverse Proxy SSL header support
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Large File Upload Configuration (allow up to 5 GB and 5,000 files)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5368709120  # 5 GB

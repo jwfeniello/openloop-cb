@@ -49,7 +49,7 @@ export default function Samples() {
   const playSong = (id:number) => {
     const file = data.results[id]
     if (!file) return;
-    const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "http://192.168.1.102:1337";
+    const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "";
     const urlfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Sounds/" + file.category + "/" + file.file.split('/').pop()
     const coverfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Artworks/" + file.pack.cover.split('/').pop()
     const audiofile: AudioFile = {

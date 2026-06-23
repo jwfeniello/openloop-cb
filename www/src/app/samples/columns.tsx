@@ -182,7 +182,7 @@ export const columns: ColumnDef<Sample>[] = [
     header: "",
     cell: props => {
       const image = props.row.original.pack.cover;
-      const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "http://192.168.1.102:1337";
+      const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "";
       const coverfix = `${mediaBaseUrl}/media/uploads/` + props.row.original.pack.name + "/Artworks/" + image.split('/').pop()
 
       return (
