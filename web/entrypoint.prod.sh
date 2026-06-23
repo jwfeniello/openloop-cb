@@ -4,9 +4,21 @@ if [ "$DATABASE" = "postgres" ]
 then
     echo "Waiting for postgres..."
 
-    while ! nc -z $SQL_HOST $SQL_PORT; do
-      sleep 0.1
-    done
+    python -c "
+import socket
+import sys
+import time
+import os
+
+host = os.environ.get('SQL_HOST')
+port = int(os.environ.get('SQL_PORT', 5432))
+while True:
+    try:
+        with socket.create_connection((host, port), timeout=1):
+            sys.exit(0)
+    except OSError:
+        time.sleep(0.1)
+"
 
     echo "PostgreSQL started"
 fi
