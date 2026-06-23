@@ -26,6 +26,8 @@ services:
     build:
       context: ./www
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_MEDIA_URL=${NEXT_PUBLIC_MEDIA_URL}
     pull_policy: build
     volumes:
       - node_modules:/app/www/node_modules

@@ -1,5 +1,8 @@
 FROM node:alpine
 
+ARG NEXT_PUBLIC_MEDIA_URL
+ENV NEXT_PUBLIC_MEDIA_URL=$NEXT_PUBLIC_MEDIA_URL
+
 RUN mkdir -p /app/www
 
 COPY . /app/www/
