@@ -6,6 +6,14 @@ import sys
 
 def main():
     """Run administrative tasks."""
+    # Increase open file descriptor limits for large directory uploads
+    try:
+        import resource
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(hard, 65536), hard))
+    except Exception:
+        pass
+
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'openloop.settings')
     try:
         from django.core.management import execute_from_command_line

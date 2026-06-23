@@ -11,3 +11,11 @@ class SampleSerializer(serializers.ModelSerializer):
         model = Sample
         fields = '__all__'
         depth = 1
+
+
+class PackSerializer(serializers.ModelSerializer):
+    tags = TagListSerializerField()
+
+    class Meta:
+        model = Pack
+        fields = '__all__'

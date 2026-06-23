@@ -1,7 +1,9 @@
 "use client"
 
+import { useRef, useEffect, useState } from "react"
 import { ColumnDef, createColumnHelper } from "@tanstack/react-table"
 import Image from 'next/image'
+import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { IoPlayOutline, IoPlay, IoAddOutline } from "react-icons/io5";
 import { 
@@ -33,6 +35,9 @@ export type Sample = {
   category: string
   duration: number
   tags: Array<string>
+  peaks?: Array<number>
+  key?: string | null
+  bpm?: number | null
 }
 
 const columnHelper = createColumnHelper<Sample>()
@@ -45,14 +50,140 @@ export function getTags(row) {
   return tagsfield
 }
 
+function TagsList({ tags }: { tags: string[] }) {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [visibleCount, setVisibleCount] = useState(tags.length)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const checkOverflow = () => {
+      const children = Array.from(container.children) as HTMLElement[]
+      if (children.length === 0) return
+
+      const containerWidth = container.getBoundingClientRect().width
+      let totalWidth = 0
+      let count = 0
+
+      for (let i = 0; i < children.length; i++) {
+        const gap = i > 0 ? 4 : 0 // gap-1 is 4px
+        const childWidth = children[i].getBoundingClientRect().width
+        
+        if (totalWidth + childWidth + gap <= containerWidth) {
+          totalWidth += childWidth + gap
+          count++
+        } else {
+          break
+        }
+      }
+      setVisibleCount(count)
+    }
+
+    checkOverflow()
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(checkOverflow)
+      observer.observe(container)
+      return () => observer.disconnect()
+    }
+  }, [tags])
+
+  return (
+    <div ref={containerRef} className="flex flex-row gap-1 w-full overflow-hidden whitespace-nowrap items-center">
+      {tags.map((tag, idx) => (
+        <Link
+          key={tag}
+          href={`/samples?tags=${encodeURIComponent(tag)}`}
+          className="inline-flex items-center rounded bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 ring-1 ring-inset ring-sky-800/60 hover:bg-sky-900/80 hover:text-sky-100 transition-colors whitespace-nowrap"
+          style={{
+            visibility: idx < visibleCount ? 'visible' : 'hidden',
+          }}
+        >
+          #{tag}
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+const ScrollableTableName = ({ 
+    name, 
+    replaceUnderscores, 
+    scrollLongNames
+}: { 
+    name: string; 
+    replaceUnderscores: boolean; 
+    scrollLongNames: boolean; 
+}) => {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const textRef = useRef<HTMLSpanElement>(null);
+    const [scrollAmount, setScrollAmount] = useState(0);
+    const [isHovered, setIsHovered] = useState(false);
+
+    let displayName = name ? name.replace(/\.[^/.]+$/, "") : "";
+    if (replaceUnderscores) {
+        displayName = displayName.replace(/_/g, " ");
+    }
+
+    useEffect(() => {
+        const checkScroll = () => {
+            if (containerRef.current && textRef.current) {
+                const containerWidth = containerRef.current.getBoundingClientRect().width;
+                const textWidth = textRef.current.scrollWidth;
+                if (textWidth > containerWidth) {
+                    setScrollAmount(textWidth - containerWidth + 12); // padding offset
+                } else {
+                    setScrollAmount(0);
+                }
+            }
+        };
+
+        checkScroll();
+
+        if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+            const observer = new ResizeObserver(checkScroll);
+            observer.observe(containerRef.current);
+            return () => observer.disconnect();
+        }
+    }, [name, replaceUnderscores, scrollLongNames]);
+
+    const style = (scrollLongNames && scrollAmount > 0) ? {
+        transform: isHovered ? `translateX(-${scrollAmount}px)` : "translateX(0px)",
+        transition: "transform 3s ease-in-out",
+    } : {};
+
+    return (
+        <div 
+            ref={containerRef} 
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            className="w-full overflow-hidden whitespace-nowrap cursor-default"
+        >
+            <span 
+                ref={textRef}
+                style={style}
+                className={`font-bold text-[13.5px] inline-block ${
+                    (scrollLongNames && scrollAmount > 0 && isHovered)
+                        ? "overflow-visible max-w-none"
+                        : "truncate max-w-full"
+                }`}
+            >
+                {displayName}
+            </span>
+        </div>
+    );
+};
+
 export const columns: ColumnDef<Sample>[] = [
   // Display Column
   columnHelper.display({
     id: 'image',
     header: "",
     cell: props => {
-      const image= props.row.original.pack.cover
-      const coverfix = "http://192.168.1.102:1337/media/uploads/" + props.row.original.pack.name + "/Artworks/" + image.split('/').pop()
+      const image = props.row.original.pack.cover;
+      const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "http://192.168.1.102:1337";
+      const coverfix = `${mediaBaseUrl}/media/uploads/` + props.row.original.pack.name + "/Artworks/" + image.split('/').pop()
 
       return (
         <button className="transition relative group flex py-0 px-0 rounded-full size-8 overflow-clip hover:shadow-sm hover:ring-1 hover:ring-black">
@@ -80,27 +211,107 @@ export const columns: ColumnDef<Sample>[] = [
   },
   {
     accessorKey: "name",
-    header: () => <div className="flex font-bold my-auto">Name</div>,
-    cell: ({ row }) => <div className="flex font-bold">{row.getValue("name")}</div>
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Name</div>,
+    cell: ({ row, table }) => {
+      const name = row.getValue("name") as string;
+      const meta = table.options.meta as any;
+      const replaceUnderscores = meta?.replaceUnderscores;
+      const scrollLongNames = meta?.scrollLongNames;
+
+      return (
+        <ScrollableTableName
+          name={name}
+          replaceUnderscores={replaceUnderscores}
+          scrollLongNames={scrollLongNames}
+        />
+      );
+    }
+  },
+  {
+    id: "waveform",
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Waveform</div>,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as any;
+      const currentAudioDbId = meta?.currentAudioDbId;
+      const progress = meta?.progress || 0;
+      const isCurrent = currentAudioDbId === row.original.id;
+
+      const peaks = row.original.peaks;
+      if (!peaks || !Array.isArray(peaks) || peaks.length === 0) {
+        return (
+          <div className="w-24 h-6 flex items-center">
+            <div className="w-full h-[2px] bg-gray-700/50 rounded" />
+          </div>
+        );
+      }
+
+      const barCount = 24;
+      const step = Math.max(1, Math.floor(peaks.length / barCount));
+      const bars: number[] = [];
+      for (let i = 0; i < barCount; i++) {
+        const peakIndex = i * step;
+        if (peakIndex < peaks.length) {
+          bars.push(peaks[peakIndex]);
+        }
+      }
+
+      return (
+        <div className="flex items-center h-6 w-24 pr-2">
+          <svg className="w-full h-full text-zinc-700/50" viewBox="0 0 100 30" preserveAspectRatio="none">
+            {bars.map((bar, idx) => {
+              const barHeight = Math.max(2, (bar / 100) * 26);
+              const y = (30 - barHeight) / 2;
+              const x = (idx / barCount) * 100;
+              const width = 100 / barCount - 1.5;
+              
+              const isPlayed = isCurrent && (idx / barCount) <= progress;
+              const barColorClass = isPlayed 
+                ? "text-sky-400 drop-shadow-[0_0_2px_rgba(56,189,248,0.5)]" 
+                : "text-zinc-500 hover:text-zinc-300";
+
+              return (
+                <rect
+                  key={idx}
+                  x={x}
+                  y={y}
+                  width={Math.max(1.5, width)}
+                  height={barHeight}
+                  rx={1}
+                  className={`fill-current transition-colors duration-150 ${barColorClass}`}
+                />
+              );
+            })}
+          </svg>
+        </div>
+      );
+    }
   },
   {
     accessorKey: "tags",
-    header: () => <div className="flex font-bold my-auto">Tags</div>,
-    cell: ({ row }) => row.getValue("tags").toString().split(",").map(function(item) {
-      if (item) {
-        item = "#" + item
-        return (
-          <div key={item} className="inline-flex items-center rounded-md bg-green-50 px-1.5 py-0.5 text-[11px] font-medium text-green-700 ring-1 ring-inset ring-green-600/20">{item}</div>
-        )
-      } else {
-        return
-      }
-      
-    })
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Tags</div>,
+    cell: ({ row }) => {
+      const tagsVal = row.getValue("tags");
+      const tagsStr = tagsVal ? tagsVal.toString() : "";
+      if (!tagsStr) return null;
+
+      const tags = tagsStr.split(",").map((t) => t.trim()).filter(Boolean);
+      const primaryTags = ['kick', 'snare', 'cymbal', 'percussion'];
+
+      tags.sort((a, b) => {
+        const aIndex = primaryTags.indexOf(a);
+        const bIndex = primaryTags.indexOf(b);
+        if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+        if (aIndex !== -1) return -1;
+        if (bIndex !== -1) return 1;
+        return 0;
+      });
+
+      return <TagsList tags={tags} />;
+    }
   },
   {
     accessorKey: "duration",
-    header: () => <div className="flex font-bold my-auto">Time</div>,
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Time</div>,
     cell: ({row}) => {
       const time = parseInt(row.getValue("duration"))
       if (time) {
@@ -115,13 +326,38 @@ export const columns: ColumnDef<Sample>[] = [
     }
   },
   {
+    accessorKey: "key",
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Key</div>,
+    cell: ({row}) => {
+      const val = row.original.key;
+      return val ? (
+        <span className="items-center self-center px-1 py-0.5 text-gray-300 font-medium">{val}</span>
+      ) : (
+        <span className="items-center self-center px-1 py-0.5 text-gray-500">—</span>
+      );
+    }
+  },
+  {
+    accessorKey: "bpm",
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Bpm</div>,
+    cell: ({row}) => {
+      const val = row.original.bpm;
+      return val ? (
+        <span className="items-center self-center px-1 py-0.5 text-gray-300 font-medium">{val}</span>
+      ) : (
+        <span className="items-center self-center px-1 py-0.5 text-gray-500">—</span>
+      );
+    }
+  },
+  {
     accessorKey: "category",
-    header: () => <div className="flex font-bold my-auto">Category</div>,
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Category</div>,
+    cell: ({ row }) => <span className="text-[13px] text-gray-300 capitalize">{row.original.category}</span>
   },
   {
     accessorKey: "pack",
-    header: () => <div className="flex font-bold my-auto">Pack</div>,
-    cell: ({row}) => row.getValue("pack")["name"]
+    header: () => <div className="flex text-xs font-semibold uppercase tracking-wider text-gray-200 my-auto">Pack</div>,
+    cell: ({row}) => <span className="text-[13px] text-gray-300">{row.original.pack?.name || ""}</span>
   },
   columnHelper.display({
     id: 'actions',

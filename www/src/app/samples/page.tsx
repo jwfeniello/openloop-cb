@@ -16,6 +16,29 @@ export type ApiPage = {
 export default function Samples() {
   const [data, setData] = useState<ApiPage>()
   const [audio, setAudio] = useState<AudioFile>()
+  const [playing, setPlaying] = useState<boolean>(false)
+  const [progress, setProgress] = useState<number>(0)
+
+  const [replaceUnderscores, setReplaceUnderscores] = useState<boolean>(false)
+  const [scrollLongNames, setScrollLongNames] = useState<boolean>(false)
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setReplaceUnderscores(localStorage.getItem('replaceUnderscores') === 'true')
+      setScrollLongNames(localStorage.getItem('scrollLongNames') === 'true')
+    }
+  }, [])
+
+  const handleToggleReplaceUnderscores = (val: boolean) => {
+    setReplaceUnderscores(val)
+    localStorage.setItem('replaceUnderscores', String(val))
+  }
+
+  const handleToggleScrollLongNames = (val: boolean) => {
+    setScrollLongNames(val)
+    localStorage.setItem('scrollLongNames', String(val))
+  }
 
   function getData() {
     const page = fetch('/samples/api')
@@ -25,19 +48,24 @@ export default function Samples() {
 
   const playSong = (id:number) => {
     const file = data.results[id]
-    //We need to rebuild the urls because the ones from the api uses web:8000 as domain, which don't work as the request is made from the frontend
-    //there's surely a better way of doing this, maybe from the storage model in django or the api, idk
-    //this is bad, i know.
-    const urlfix = "http://192.168.1.102:1337/media/uploads/" + file.pack.name + "/Sounds/" + file.category + "/" + file.file.split('/').pop()
-    const coverfix = "http://192.168.1.102:1337/media/uploads/" + file.pack.name + "/Artworks/" + file.pack.cover.split('/').pop()
+    if (!file) return;
+    const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_URL || "http://192.168.1.102:1337";
+    const urlfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Sounds/" + file.category + "/" + file.file.split('/').pop()
+    const coverfix = `${mediaBaseUrl}/media/uploads/` + file.pack.name + "/Artworks/" + file.pack.cover.split('/').pop()
     const audiofile: AudioFile = {
       id: id,
-      title: file.name,
+      dbId: file.id,
+      title: file.name ? file.name.replace(/\.[^/.]+$/, "") : "",
       url: urlfix,
       author: file.pack.name,
       thumbnail: coverfix,
+      category: file.category,
+      packName: file.pack.name,
+      fileName: file.name,
     }
     setAudio(audiofile)
+    setPlaying(true)
+    setProgress(0)
   }
 
   const updateData = (data: ApiPage) => {
@@ -65,23 +93,37 @@ export default function Samples() {
   
   return (
     <>
-    <div className={"flex transition pt-16 overflow-hidden w-full h-screen " + (audio ? "pb-48" : "")}>
+    <div className={"flex transition pt-16 overflow-hidden w-full h-screen " + (audio ? "pb-24" : "")}>
       <Suspense>
         <DataTable 
           columns={columns}
           paginate={data}
+          currentAudioDbId={audio?.dbId}
+          isPlaying={playing}
+          progress={progress}
           playSong={playSong}
+          setPlaying={setPlaying}
           onDataUpdate={updateData}
+          replaceUnderscores={replaceUnderscores}
+          scrollLongNames={scrollLongNames}
         />
       </Suspense>
     </div>
-    <div className={"transition fixed bottom-0 sm:w-4/5 w-full p-2 " + (audio ? "" : "translate-y-48")}>
+    <div className={"transition fixed bottom-0 sm:w-4/5 w-full p-2 " + (audio ? "" : "translate-y-24")}>
       {audio 
         ? (
           <Player
             audio={audio}
+            playing={playing}
+            setPlaying={setPlaying}
+            progress={progress}
+            setProgress={setProgress}
             onFwd={skipForward}
             onBwd={skipBackward}
+            replaceUnderscores={replaceUnderscores}
+            setReplaceUnderscores={handleToggleReplaceUnderscores}
+            scrollLongNames={scrollLongNames}
+            setScrollLongNames={handleToggleScrollLongNames}
           />
           )
         : <></>

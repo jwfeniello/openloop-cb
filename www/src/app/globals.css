@@ -74,3 +74,15 @@
     @apply bg-background text-foreground;
   }
 }
+
+@keyframes marquee-sync {
+  0%, 15% {
+    transform: translateX(0);
+  }
+  45%, 55% {
+    transform: translateX(var(--scroll-dist, 0px));
+  }
+  85%, 100% {
+    transform: translateX(0);
+  }
+}

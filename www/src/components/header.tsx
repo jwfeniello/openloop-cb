@@ -1,16 +1,4 @@
-import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-  } from "@/components/ui/dropdown-menu"
-
-  import {
     Sheet,
     SheetTrigger,
     SheetContent,
@@ -19,7 +7,7 @@ import {
 export default function Header() {
     return(
         <header className="fixed top-0 left-0 z-50 w-full">
-            <nav className="bg-white border-gray-200 px-4 lg:px-6 py-2.5 dark:bg-gray-900 drop-shadow h-16">
+            <nav className="bg-white border-gray-200 px-4 lg:px-6 py-1 dark:bg-gray-900 drop-shadow h-16">
                 <div className="flex flex-wrap justify-between items-center">
                     <Sheet>
                       <SheetTrigger asChild className="flex justify-start items-center sm:hidden">
@@ -67,37 +55,11 @@ export default function Header() {
                         </div>
                       </SheetContent>
                     </Sheet>
-                    <a href="/sample" className="flex mr-4">
-                        <span className="self-center text-2xl font-semibold whitespace-nowrap dark:text-white">LoopShare</span>
-                        </a>
+                    <a href="/samples" className="flex mr-4 items-center">
+                        <img src="/logo.png" alt="LoopShare" style={{ height: "52px", minHeight: "52px", width: "auto" }} className="object-contain" />
+                    </a>
 
-                    <div className="flex items-center lg:order-2">
-                        <button type="button" className="hidden sm:inline-flex items-center justify-center text-white bg-gray-600 hover:bg-slate-700 hover:ring-2 hover:ring-indigo-300 font-medium rounded-lg text-xs px-3 py-1.5 mr-2 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none">
-                        <svg aria-hidden="true" className="mr-1 -ml-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd"></path>
-                        </svg> 
-                        <a href="/admin/library/pack/add/">New Pack</a>
-                        </button>
 
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="secondary" size="icon" className="rounded-full">
-                                    <Avatar>
-                                        <AvatarImage src="https://github.com/shadcn.png" />
-                                        <AvatarFallback>CN</AvatarFallback>
-                                    </Avatar>
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="hover:bg-gray-300">Settings</DropdownMenuItem>
-                                    <DropdownMenuItem>Support</DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem>Logout</DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </div>
                 </div>
             </nav>
         </header>

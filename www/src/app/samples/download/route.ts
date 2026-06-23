@@ -8,8 +8,9 @@ import {  type NextRequest } from 'next/server'
     const category = request.nextUrl.searchParams.get('category')
 
     // external file URL
+    const backendUrl = process.env.BACKEND_URL || 'http://web:8000';
     const BUILT_URL =
-      "http://web:8000/media/uploads/" + pack + "/Sounds/" + category + '/' + filename;
+      `${backendUrl}/media/uploads/` + pack + "/Sounds/" + category + '/' + filename;
   
     // use fetch to get a response
     const response = await fetch(BUILT_URL)

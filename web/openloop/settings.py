@@ -153,3 +153,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "http://192.168.1.102:1337"
 ]
+
+# Large File Upload Configuration (allow up to 5 GB and 5,000 files)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5368709120  # 5 GB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600   # 100 MB (files larger than this are written to disk directly)
+DATA_UPLOAD_MAX_NUMBER_FILES = 5000
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
+
