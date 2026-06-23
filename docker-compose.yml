@@ -42,7 +42,7 @@ services:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/mediafiles
     ports:
-      - 1337:80
+      - 2337:80
     depends_on:
       - web
       - www

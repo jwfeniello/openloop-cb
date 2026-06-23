@@ -143,7 +143,18 @@ MEDIA_ROOT = BASE_DIR / "mediafiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Media Files Cookie Trust
-CSRF_TRUSTED_ORIGINS = ["http://localhost:1337", "http://192.168.1.102:1337"]
+CSRF_TRUSTED_ORIGINS = ["http://localhost:1337", "http://192.168.1.102:1337", "http://localhost:2337"]
+csrf_env = os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS")
+if csrf_env:
+    CSRF_TRUSTED_ORIGINS.extend(csrf_env.split(" "))
+else:
+    allowed_hosts_env = os.environ.get("DJANGO_ALLOWED_HOSTS")
+    if allowed_hosts_env:
+        for host in allowed_hosts_env.split(" "):
+            if host:
+                CSRF_TRUSTED_ORIGINS.append(f"http://{host}")
+                CSRF_TRUSTED_ORIGINS.append(f"http://{host}:1337")
+                CSRF_TRUSTED_ORIGINS.append(f"http://{host}:2337")
 
 # Project Specific Values
 
@@ -151,8 +162,20 @@ CSRF_TRUSTED_ORIGINS = ["http://localhost:1337", "http://192.168.1.102:1337"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "http://192.168.1.102:1337"
+    "http://192.168.1.102:1337",
+    "http://localhost:2337",
 ]
+cors_env = os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS")
+if cors_env:
+    CORS_ALLOWED_ORIGINS.extend(cors_env.split(" "))
+else:
+    allowed_hosts_env = os.environ.get("DJANGO_ALLOWED_HOSTS")
+    if allowed_hosts_env:
+        for host in allowed_hosts_env.split(" "):
+            if host:
+                CORS_ALLOWED_ORIGINS.append(f"http://{host}")
+                CORS_ALLOWED_ORIGINS.append(f"http://{host}:1337")
+                CORS_ALLOWED_ORIGINS.append(f"http://{host}:2337")
 
 # Large File Upload Configuration (allow up to 5 GB and 5,000 files)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5368709120  # 5 GB
