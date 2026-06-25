@@ -275,36 +275,113 @@ def extract_peaks_from_file(file_obj, num_peaks=100):
 def extract_key_and_bpm_from_name(filename):
     name_without_ext = filename.rsplit('.', 1)[0]
     
-    # Extract BPM
+    # Normalize delimiters for BPM detection
+    normalized_for_bpm = re.sub(r'[\s\-_()\[\].,:;/\\]+', ' ', name_without_ext).strip()
+    
+    # 1. Extract BPM
     bpm = None
-    bpm_match = re.search(r'\b(\d{2,3})\s*bpm\b', name_without_ext, re.IGNORECASE)
+    # Look for explicit BPM indicators
+    bpm_match = re.search(r'\b(\d{2,3})\s*bpm\b', normalized_for_bpm, re.IGNORECASE)
+    if not bpm_match:
+        bpm_match = re.search(r'\bbpm\s*(\d{2,3})\b', normalized_for_bpm, re.IGNORECASE)
+        
     if bpm_match:
         bpm = int(bpm_match.group(1))
+    else:
+        # Fallback: Look for a single standalone number in typical BPM range (60-200)
+        pure_numbers = []
+        tokens = normalized_for_bpm.split()
+        for token in tokens:
+            if re.match(r'^\d{2,3}$', token):
+                val = int(token)
+                if 60 <= val <= 200:
+                    pure_numbers.append(val)
         
-    # Extract Key
-    tokens = re.split(r'[\s\-_]+', name_without_ext)
-    key_candidates = []
+        # If there's exactly one candidate number in that range, assume it's the BPM
+        if len(pure_numbers) == 1:
+            bpm = pure_numbers[0]
+
+    # 2. Extract Key
+    # Split by standard delimiters except dots, to prevent S.E.3 from splitting into S, E, 3
+    tokens = [t for t in re.split(r'[\s\-_()\[\]/\\:;]+', name_without_ext) if t]
     
-    chord_pattern = re.compile(r'^([A-G][#b]?(?:m|min|minor|maj|major|maj7)?)$')
+    KEY_PATTERN = re.compile(r'^([A-G])([#b]?)(m|min|minor|maj|major|maj7)?$')
+    CAMELOT_PATTERN = re.compile(r'^(1[0-2]|[1-9])[AB]$', re.IGNORECASE)
     
-    for i, token in enumerate(tokens):
-        clean_token = re.sub(r'[()\[\].,:;]', '', token)
-        is_preceded_by_root = False
-        if i > 0:
-            prev_token = re.sub(r'[()\[\].,:;]', '', tokens[i-1]).lower()
-            if prev_token == 'root':
-                is_preceded_by_root = True
-                
-        match = chord_pattern.match(clean_token)
-        if match:
-            matched_val = match.group(1)
-            if len(matched_val) == 1 and not is_preceded_by_root:
-                continue
-            key_candidates.append(matched_val)
+    key_candidates = [] # list of tuples: (key_string, level)
+    
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        
+        # Check Camelot
+        if CAMELOT_PATTERN.match(token):
+            key_candidates.append((token.upper(), 2))
+            i += 1
+            continue
             
+        # Check standard key
+        match = KEY_PATTERN.match(token)
+        if match:
+            note = match.group(1) # Uppercase letter A-G
+            accidental = match.group(2) # # or b
+            modifier = match.group(3) # m, min, maj, etc.
+            
+            # Check if next token is a modifier that can be merged
+            if not modifier and i + 1 < len(tokens):
+                next_token = tokens[i+1].lower()
+                if next_token in ['m', 'min', 'minor', 'maj', 'major', 'maj7', 'minor7', 'major7']:
+                    modifier = next_token
+                    i += 1 # Consume next token
+            
+            # Reconstruct clean key name
+            key_str = note + accidental
+            if modifier:
+                # Standardize common modifiers
+                if modifier.lower() in ['m', 'min', 'minor']:
+                    key_str += 'm'
+                elif modifier.lower() in ['maj', 'major', 'maj7']:
+                    key_str += 'maj'
+                else:
+                    key_str += modifier
+            
+            # Determine level
+            # Level 2 (Strong): has accidental or modifier
+            # Level 1 (Weak): single letter note (e.g. C, A)
+            if accidental or modifier:
+                level = 2
+            else:
+                level = 1
+                
+            # Filter out obvious false positives for weak single-letter keys
+            is_false_positive = False
+            if level == 1:
+                # "A" as first token is usually the article "a" (e.g. "A Drum Loop")
+                if note == 'A' and i == 0:
+                    is_false_positive = True
+                # "B" preceded by Vol/Volume/Version is usually an index
+                elif note == 'B' and i > 0 and tokens[i-1].lower() in ['vol', 'volume', 'ver', 'version']:
+                    is_false_positive = True
+                # Surrounded by numbers or index indications
+                elif i > 0 and tokens[i-1].lower() in ['no', 'num', 'number']:
+                    is_false_positive = True
+                    
+            if not is_false_positive:
+                key_candidates.append((key_str, level))
+                
+        i += 1
+        
+    # Select the best key
     key = None
-    if len(key_candidates) == 1:
-        key = key_candidates[0]
+    strong_candidates = [c[0] for c in key_candidates if c[1] == 2]
+    weak_candidates = [c[0] for c in key_candidates if c[1] == 1]
+    
+    if strong_candidates:
+        # If there are strong candidates, prioritize them. If multiple, return the first one.
+        key = strong_candidates[0]
+    elif len(weak_candidates) == 1:
+        # Only return weak candidate if it's the only one found
+        key = weak_candidates[0]
         
     return key, bpm
 
