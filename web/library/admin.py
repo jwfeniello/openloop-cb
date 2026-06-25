@@ -49,7 +49,7 @@ class PackAdmin(admin.ModelAdmin):
 
     @admin.action(description="Rescan Key & BPM for selected packs")
     def rescan_key_bpm(self, request, queryset):
-        samples_updated = 0
+        samples_to_update = []
         for pack in queryset:
             for sample in pack.samples.all():
                 name = sample.name
@@ -59,11 +59,12 @@ class PackAdmin(admin.ModelAdmin):
                     key, bpm = extract_key_and_bpm_from_name(name)
                     sample.key = key
                     sample.bpm = bpm
-                    sample.save(update_fields=['key', 'bpm'])
-                    samples_updated += 1
+                    samples_to_update.append(sample)
+        if samples_to_update:
+            Sample.objects.bulk_update(samples_to_update, ['key', 'bpm'], batch_size=500)
         self.message_user(
             request,
-            f"Successfully rescanned Key & BPM for {samples_updated} samples in the selected packs."
+            f"Successfully rescanned Key & BPM for {len(samples_to_update)} samples in the selected packs."
         )
 
     def get_urls(self):
@@ -75,7 +76,7 @@ class PackAdmin(admin.ModelAdmin):
 
     def rescan_all_view(self, request):
         samples = Sample.objects.all()
-        samples_updated = 0
+        samples_to_update = []
         for sample in samples:
             name = sample.name
             if not name and sample.file:
@@ -84,11 +85,12 @@ class PackAdmin(admin.ModelAdmin):
                 key, bpm = extract_key_and_bpm_from_name(name)
                 sample.key = key
                 sample.bpm = bpm
-                sample.save(update_fields=['key', 'bpm'])
-                samples_updated += 1
+                samples_to_update.append(sample)
+        if samples_to_update:
+            Sample.objects.bulk_update(samples_to_update, ['key', 'bpm'], batch_size=500)
         self.message_user(
             request,
-            f"Successfully rescanned Key & BPM for all {samples_updated} samples in the system."
+            f"Successfully rescanned Key & BPM for all {len(samples_to_update)} samples in the system."
         )
         return HttpResponseRedirect("../")
 
@@ -102,7 +104,7 @@ class SampleAdmin(admin.ModelAdmin):
 
     @admin.action(description="Rescan Key & BPM for selected samples")
     def rescan_key_bpm(self, request, queryset):
-        samples_updated = 0
+        samples_to_update = []
         for sample in queryset:
             name = sample.name
             if not name and sample.file:
@@ -111,11 +113,12 @@ class SampleAdmin(admin.ModelAdmin):
                 key, bpm = extract_key_and_bpm_from_name(name)
                 sample.key = key
                 sample.bpm = bpm
-                sample.save(update_fields=['key', 'bpm'])
-                samples_updated += 1
+                samples_to_update.append(sample)
+        if samples_to_update:
+            Sample.objects.bulk_update(samples_to_update, ['key', 'bpm'], batch_size=500)
         self.message_user(
             request,
-            f"Successfully rescanned Key & BPM for {samples_updated} samples."
+            f"Successfully rescanned Key & BPM for {len(samples_to_update)} samples."
         )
 
     def get_urls(self):
@@ -127,7 +130,7 @@ class SampleAdmin(admin.ModelAdmin):
 
     def rescan_all_view(self, request):
         samples = Sample.objects.all()
-        samples_updated = 0
+        samples_to_update = []
         for sample in samples:
             name = sample.name
             if not name and sample.file:
@@ -136,11 +139,12 @@ class SampleAdmin(admin.ModelAdmin):
                 key, bpm = extract_key_and_bpm_from_name(name)
                 sample.key = key
                 sample.bpm = bpm
-                sample.save(update_fields=['key', 'bpm'])
-                samples_updated += 1
+                samples_to_update.append(sample)
+        if samples_to_update:
+            Sample.objects.bulk_update(samples_to_update, ['key', 'bpm'], batch_size=500)
         self.message_user(
             request,
-            f"Successfully rescanned Key & BPM for all {samples_updated} samples in the system."
+            f"Successfully rescanned Key & BPM for all {len(samples_to_update)} samples in the system."
         )
         return HttpResponseRedirect("../")
 
