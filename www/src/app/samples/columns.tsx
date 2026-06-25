@@ -96,7 +96,7 @@ function TagsList({ tags }: { tags: string[] }) {
         <Link
           key={tag}
           href={`/samples?tags=${encodeURIComponent(tag)}`}
-          className="inline-flex items-center rounded bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 ring-1 ring-inset ring-sky-800/60 hover:bg-sky-900/80 hover:text-sky-100 transition-colors whitespace-nowrap"
+          className="inline-flex items-center rounded bg-sky-950/60 px-1.5 py-0.5 text-[10px] font-medium text-white ring-1 ring-inset ring-sky-800/60 hover:bg-sky-900/80 hover:text-white transition-colors whitespace-nowrap"
           style={{
             visibility: idx < visibleCount ? 'visible' : 'hidden',
           }}
