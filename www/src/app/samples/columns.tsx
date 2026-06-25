@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { IoPlayOutline, IoPlay, IoAddOutline } from "react-icons/io5";
+import { ImLoop } from "react-icons/im";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -182,6 +183,10 @@ export const columns: ColumnDef<Sample>[] = [
     header: "",
     cell: props => {
       const image = props.row.original.pack.cover;
+      const bpm = props.row.original.bpm;
+      const duration = props.row.original.duration;
+      const isLoop = bpm !== null && bpm !== undefined && bpm > 0 && duration > 4;
+
       const getMediaBaseUrl = () => {
         const url = process.env.NEXT_PUBLIC_MEDIA_URL || "";
         if (url.includes("localhost") || url.includes("127.0.0.1") || url.includes("192.168") || url.includes("10.0.") || url.includes("172.")) {
@@ -193,16 +198,26 @@ export const columns: ColumnDef<Sample>[] = [
       const coverfix = `${mediaBaseUrl}/media/uploads/` + props.row.original.pack.name + "/Artworks/" + image.split('/').pop()
 
       return (
-        <button className="transition relative group flex py-0 px-0 rounded-full size-8 overflow-clip hover:shadow-sm hover:ring-1 hover:ring-black">
-          <IoAddOutline className="absolute top-0 z-10 transition rounded-full scale-0 size-8 group-hover:scale-100 text-black bg-slate-50" />
-          <img
-           className="absolute top-0 z-0 rounded-full transition size-8 group-hover:scale-70"
-            alt="cover"
-            src={ coverfix }
-            width={32}
-            height={32}
-          />
-        </button>
+        <div className="relative size-8 shrink-0">
+          <button className="transition relative group flex py-0 px-0 rounded-full size-8 overflow-clip hover:shadow-sm hover:ring-1 hover:ring-black">
+            <IoAddOutline className="absolute top-0 z-10 transition rounded-full scale-0 size-8 group-hover:scale-100 text-black bg-slate-50" />
+            <img
+             className="absolute top-0 z-0 rounded-full transition size-8 group-hover:scale-70"
+              alt="cover"
+              src={ coverfix }
+              width={32}
+              height={32}
+            />
+          </button>
+          {isLoop && (
+            <div 
+              className="absolute -bottom-0.5 -right-0.5 z-20 bg-sky-950 text-sky-400 p-0.5 rounded-full ring-1 ring-sky-500/30 flex items-center justify-center pointer-events-none select-none size-3.5 shadow-md"
+              title="Loop"
+            >
+              <ImLoop className="size-[8px]" />
+            </div>
+          )}
+        </div>
       )
     },
   }),
