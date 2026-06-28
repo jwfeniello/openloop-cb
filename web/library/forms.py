@@ -338,12 +338,14 @@ class FileFieldForm(forms.Form):
 
 
 class PackForm(forms.ModelForm):
-    drums = MultipleFileField()
-    tonal = MultipleFileField()
-    vocals = MultipleFileField()
-    sfxs = MultipleFileField()
-    ambiences = MultipleFileField()
+    auto_upload = MultipleFileField(required=False, label="Single Pack Folder (Auto-Categorize with AI)")
+    drums = MultipleFileField(required=False, label="Drums (Manual Upload)")
+    tonal = MultipleFileField(required=False, label="Tonal (Manual Upload)")
+    vocals = MultipleFileField(required=False, label="Vocals (Manual Upload)")
+    sfxs = MultipleFileField(required=False, label="SFXs (Manual Upload)")
+    ambiences = MultipleFileField(required=False, label="Ambiences (Manual Upload)")
 
     class Meta:
         model = Pack
-        fields = "__all__"
+        fields = ["type", "name", "author", "cover", "tags", "auto_upload", "drums", "tonal", "vocals", "sfxs", "ambiences"]
+

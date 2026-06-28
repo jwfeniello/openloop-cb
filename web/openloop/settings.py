@@ -198,3 +198,8 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600   # 100 MB (files larger than this are w
 DATA_UPLOAD_MAX_NUMBER_FILES = 5000
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 10000
 
+# OpenRouter AI Configuration
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+
+
