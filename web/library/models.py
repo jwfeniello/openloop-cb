@@ -40,10 +40,12 @@ class Pack(models.Model):
 class Sample(models.Model):
     class categories(models.TextChoices):
         DRUMS = "drums", _("Drums")
+        BASS = "bass", _("Bass")
         TONAL = "tonal", _("Tonal")
         VOCALS = "vocals", _("Vocals")
         SFXS = "sfxs", _("Sfxs")
         AMBIENCES = "ambiences", _("Ambiences")
+
 
     # fields
     pack = models.ForeignKey(Pack, on_delete=models.CASCADE, related_name="samples", to_field="name")

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 
 const categories = [
     { id: 'drums', name: 'Drums' },
+    { id: 'bass', name: 'Bass' },
     { id: 'tonal', name: 'Tonal' },
     { id: 'sfxs', name: 'Sfxs' },
     { id: 'vocals', name: 'Vocals' },

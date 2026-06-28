@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 def classify_files_with_openrouter(file_list):
     """
     Classifies a list of file path/name strings into OpenLoop categories:
-    ['drums', 'tonal', 'vocals', 'sfxs', 'ambiences'].
+    ['drums', 'bass', 'tonal', 'vocals', 'sfxs', 'ambiences'].
     Returns a dictionary mapping file string -> category string.
     """
-    categories = ["drums", "tonal", "vocals", "sfxs", "ambiences"]
+    categories = ["drums", "bass", "tonal", "vocals", "sfxs", "ambiences"]
     result_map = {}
     
     api_key = getattr(settings, "OPENROUTER_API_KEY", None) or ""
@@ -32,7 +32,8 @@ def classify_files_with_openrouter(file_list):
             prompt = (
                 "You are an expert audio sample library organizer. Categorize each audio file path/name into EXACTLY ONE of these categories:\n"
                 "- drums (kicks, snares, claps, hi-hats, percussions, drum loops, breaks, cymbals, toms, bongos, rims)\n"
-                "- tonal (synths, bass, 808s, leads, plucks, piano, guitar, melody loops, keys, chords, instruments, musical elements)\n"
+                "- bass (sub bass, 808s, synth bass, basslines, reese bass, acid bass, low end loops)\n"
+                "- tonal (synths, leads, plucks, piano, guitar, melody loops, keys, chords, instruments, musical elements)\n"
                 "- vocals (vocal chops, acapellas, voice lines, phrases, vocal hooks, spoken word)\n"
                 "- sfxs (risers, impacts, downlifters, foley, transition effects, glitches, sweeps, noise, drops, hits)\n"
                 "- ambiences (textures, pads, atmosphere, background hums, drones, soundscapes)\n\n"
@@ -89,10 +90,12 @@ def fallback_categorize(filename_or_path):
         return 'vocals'
     if any(k in fn for k in ['kick', 'snare', 'clap', 'hat', 'perc', 'drum', 'toploop', 'cymbal', 'tom', 'rim', 'ride', 'crash', 'break', 'bongo']):
         return 'drums'
+    if any(k in fn for k in ['bass', '808', 'sub', 'reese', 'subbass', 'bassline']):
+        return 'bass'
     if any(k in fn for k in ['sfx', 'fx', 'riser', 'impact', 'downshifter', 'downlifter', 'sweep', 'foley', 'noise', 'transition', 'drop']):
         return 'sfxs'
     if any(k in fn for k in ['ambient', 'ambience', 'pad', 'texture', 'drone', 'atmosphere', 'soundscape']):
         return 'ambiences'
-    if any(k in fn for k in ['synth', 'bass', '808', 'lead', 'pluck', 'piano', 'guitar', 'melody', 'key', 'chord', 'inst', 'music', 'tonal']):
+    if any(k in fn for k in ['synth', 'lead', 'pluck', 'piano', 'guitar', 'melody', 'key', 'chord', 'inst', 'music', 'tonal']):
         return 'tonal'
     return 'drums'
