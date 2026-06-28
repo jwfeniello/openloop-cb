@@ -44,15 +44,28 @@ class PackAdmin(admin.ModelAdmin):
         uploaded_files = request.FILES.getlist('pack_files') or request.FILES.getlist('auto_upload')
         if uploaded_files:
             valid_files = [f for f in uploaded_files if Path(f.name).suffix.lower() in valid_audio_extensions]
+            total_count = len(valid_files)
             if valid_files:
                 file_paths = [f.name for f in valid_files]
                 classification = classify_files_with_openrouter(file_paths)
-                for f in valid_files:
+                
+                print(f"💾 [Database] Saving {total_count} files for pack '{obj.name}'...", flush=True)
+                cat_counts = {}
+                for idx, f in enumerate(valid_files, start=1):
                     cat = classification.get(f.name, 'drums')
+                    cat_counts[cat] = cat_counts.get(cat, 0) + 1
                     instance = Sample(file=f, pack=obj, category=cat)
                     instance.save()
                     if jtags:
                         instance.tags.add(*jtags)
+                    if idx % 25 == 0 or idx == total_count:
+                        print(f"💾 [Database] Saved {idx}/{total_count} samples...", flush=True)
+                
+                summary = ", ".join([f"{c.capitalize()}: {n}" for c, n in cat_counts.items()])
+                self.message_user(
+                    request,
+                    f"Successfully uploaded and AI-categorized {total_count} samples for '{obj.name}' ({summary})."
+                )
 
         # 2. Fallback check for any legacy manual fields if used via API
         for v, n in Sample.categories.choices:
@@ -66,6 +79,7 @@ class PackAdmin(admin.ModelAdmin):
                 instance.save()
                 if jtags:
                     instance.tags.add(*jtags)
+
 
 
     @admin.action(description="Auto-categorize samples with OpenRouter AI")
