@@ -14,7 +14,7 @@ def log_console(msg):
     logger.info(msg)
 
 def process_batch(batch, batch_index, total_batches, api_key, model, categories):
-    log_console(f"🤖 [OpenRouter AI] Sending batch {batch_index}/{total_batches} ({len(batch)} files) to {model}...")
+    log_console(f"[OpenRouter AI] Sending batch {batch_index}/{total_batches} ({len(batch)} files) to {model}...")
     start_time = time.time()
     batch_result = {}
     
@@ -64,14 +64,14 @@ def process_batch(batch, batch_index, total_batches, api_key, model, categories)
                         batch_result[item] = cat
                     else:
                         batch_result[item] = fallback_categorize(item)
-                log_console(f"✅ [OpenRouter AI] Batch {batch_index}/{total_batches} finished in {elapsed}s!")
+                log_console(f"[OpenRouter AI] Batch {batch_index}/{total_batches} finished in {elapsed}s!")
             else:
-                log_console(f"⚠️ [OpenRouter AI] Batch {batch_index}/{total_batches} returned status {response.status}. Using rule fallback.")
+                log_console(f"[OpenRouter AI] Batch {batch_index}/{total_batches} returned status {response.status}. Using rule fallback.")
                 for item in batch:
                     batch_result[item] = fallback_categorize(item)
     except Exception as e:
         elapsed = round(time.time() - start_time, 2)
-        log_console(f"❌ [OpenRouter AI] Batch {batch_index}/{total_batches} error after {elapsed}s: {e}. Using rule fallback.")
+        log_console(f"[OpenRouter AI] Batch {batch_index}/{total_batches} error after {elapsed}s: {e}. Using rule fallback.")
         for item in batch:
             batch_result[item] = fallback_categorize(item)
             
@@ -91,7 +91,7 @@ def classify_files_with_openrouter(file_list):
     model = getattr(settings, "OPENROUTER_MODEL", "google/gemini-2.5-flash")
     
     if not api_key:
-        log_console("⚠️ [OpenRouter AI] OPENROUTER_API_KEY is not set. Falling back to local rule-based categorization.")
+        log_console("[OpenRouter AI] OPENROUTER_API_KEY is not set. Falling back to local rule-based categorization.")
         for item in file_list:
             result_map[item] = fallback_categorize(item)
         return result_map
@@ -100,7 +100,7 @@ def classify_files_with_openrouter(file_list):
     batches = [file_list[i:i+batch_size] for i in range(0, len(file_list), batch_size)]
     total_batches = len(batches)
     
-    log_console(f"🚀 [OpenRouter AI] Starting AI classification for {len(file_list)} files across {total_batches} batch(es) using model '{model}'...")
+    log_console(f"[OpenRouter AI] Starting AI classification for {len(file_list)} files across {total_batches} batch(es) using model '{model}'...")
     
     # Process batches concurrently to dramatically speed up AI categorization
     with ThreadPoolExecutor(max_workers=min(4, total_batches)) as executor:
@@ -119,7 +119,7 @@ def classify_files_with_openrouter(file_list):
             breakdown[cat] += 1
             
     summary_str = ", ".join([f"{cat.capitalize()}: {count}" for cat, count in breakdown.items()])
-    log_console(f"🎉 [OpenRouter AI] Classification complete! Breakdown: {summary_str}")
+    log_console(f"[OpenRouter AI] Classification complete! Breakdown: {summary_str}")
     return result_map
 
 

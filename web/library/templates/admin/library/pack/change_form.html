@@ -158,7 +158,7 @@ document.addEventListener("DOMContentLoaded", function() {
         fill.style.width = uploadPct + "%";
         percentLabel.textContent = uploadPct + "%";
         statusLabel.textContent = "Uploading files to server...";
-        messageBox.textContent = `📤 Uploading audio files (${Math.round(event.loaded/1024/1024)}MB / ${Math.round(event.total/1024/1024)}MB)...`;
+        messageBox.textContent = `Uploading audio files (${Math.round(event.loaded/1024/1024)}MB / ${Math.round(event.total/1024/1024)}MB)...`;
       }
     };
 
@@ -186,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function() {
             fill.style.width = "100%";
             percentLabel.textContent = "100%";
             statusLabel.textContent = "Complete!";
-            messageBox.textContent = "🎉 Pack upload & AI categorization complete!";
+            messageBox.textContent = "Pack upload & AI categorization complete!";
             setTimeout(() => {
               window.location.href = data.redirect_url || "../";
             }, 800);

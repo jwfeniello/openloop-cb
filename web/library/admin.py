@@ -48,7 +48,7 @@ class PackAdmin(admin.ModelAdmin):
                     yield json.dumps({"status": "error", "message": f"Form validation failed: {err_msg}"}) + "\n"
                     return
 
-                yield json.dumps({"status": "progress", "step": "saving_pack", "percent": 5, "message": "📦 Creating Pack metadata record..."}) + "\n"
+                yield json.dumps({"status": "progress", "step": "saving_pack", "percent": 5, "message": "Creating Pack metadata record..."}) + "\n"
                 
                 pack = form.save()
                 jtags = set()
@@ -64,12 +64,12 @@ class PackAdmin(admin.ModelAdmin):
                 total_files = len(valid_files)
 
                 if total_files > 0:
-                    yield json.dumps({"status": "progress", "step": "ai_categorizing", "percent": 20, "message": f"🤖 Categorizing {total_files} samples using OpenRouter AI..."}) + "\n"
+                    yield json.dumps({"status": "progress", "step": "ai_categorizing", "percent": 20, "message": f"Categorizing {total_files} samples using OpenRouter AI..."}) + "\n"
                     
                     file_paths = [f.name for f in valid_files]
                     classification = classify_files_with_openrouter(file_paths)
                     
-                    yield json.dumps({"status": "progress", "step": "saving_samples", "percent": 35, "message": f"💾 AI categorization complete. Saving {total_files} samples to database..."}) + "\n"
+                    yield json.dumps({"status": "progress", "step": "saving_samples", "percent": 35, "message": f"AI categorization complete. Saving {total_files} samples to database..."}) + "\n"
                     
                     cat_counts = {}
                     for idx, f in enumerate(valid_files, start=1):
@@ -80,16 +80,16 @@ class PackAdmin(admin.ModelAdmin):
                         if jtags:
                             instance.tags.add(*jtags)
                         
-                        if idx % 5 == 0 or idx == total_files:
-                            pct = int(35 + (idx / total_files) * 60)
-                            yield json.dumps({
-                                "status": "progress",
-                                "step": "saving_samples",
-                                "percent": pct,
-                                "current": idx,
-                                "total": total_files,
-                                "message": f"💾 Processing samples & waveforms ({idx}/{total_files})..."
-                            }) + "\n"
+                        pct = int(35 + (idx / total_files) * 60)
+                        sample_short_name = Path(f.name).name
+                        yield json.dumps({
+                            "status": "progress",
+                            "step": "saving_samples",
+                            "percent": pct,
+                            "current": idx,
+                            "total": total_files,
+                            "message": f"Processing sample ({idx}/{total_files}): {sample_short_name}"
+                        }) + "\n"
                     
                     summary = ", ".join([f"{c.capitalize()}: {n}" for c, n in cat_counts.items()])
                     msg = f"Successfully uploaded and AI-categorized {total_files} samples for '{pack.name}' ({summary})."
@@ -100,9 +100,10 @@ class PackAdmin(admin.ModelAdmin):
                 yield json.dumps({
                     "status": "complete",
                     "percent": 100,
-                    "message": "🎉 All done! Redirecting...",
+                    "message": "All done! Redirecting...",
                     "redirect_url": "/admin/library/pack/"
                 }) + "\n"
+
 
             except Exception as e:
                 logger.error(f"Error during stream_upload_view: {e}")
