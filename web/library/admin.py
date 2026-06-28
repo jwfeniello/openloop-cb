@@ -1,12 +1,13 @@
 from typing import Any
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.urls import path
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from .forms import PackForm
 from django.conf import settings
 from taggit.managers import TaggableManager
 from taggit.models import Tag
 from pathlib import Path
+import json
 
 # Register your models here.
 from .models import Pack, Sample, extract_key_and_bpm_from_name
@@ -28,6 +29,90 @@ class PackAdmin(admin.ModelAdmin):
     list_display = ('name', 'author', 'type')
     search_fields = ('name', 'author')
     actions = ['rescan_key_bpm', 'auto_categorize_ai']
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('rescan-all/', self.admin_site.admin_view(self.rescan_all_view), name='pack-rescan-all'),
+            path('add/stream-upload/', self.admin_site.admin_view(self.stream_upload_view), name='pack-stream-upload'),
+            path('<path:object_id>/change/stream-upload/', self.admin_site.admin_view(self.stream_upload_view), name='pack-stream-upload-change'),
+        ]
+        return custom_urls + urls
+
+    def stream_upload_view(self, request):
+        def event_generator():
+            try:
+                form = PackForm(request.POST, request.FILES)
+                if not form.is_valid():
+                    err_msg = ", ".join([f"{k}: {v[0]}" for k, v in form.errors.items()])
+                    yield json.dumps({"status": "error", "message": f"Form validation failed: {err_msg}"}) + "\n"
+                    return
+
+                yield json.dumps({"status": "progress", "step": "saving_pack", "percent": 5, "message": "📦 Creating Pack metadata record..."}) + "\n"
+                
+                pack = form.save()
+                jtags = set()
+                raw_tags = request.POST.get("tags", "")
+                if raw_tags:
+                    for i in raw_tags.split(","):
+                        if i.strip():
+                            jtags.add(str(i).strip())
+                
+                valid_audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff', '.m4a', '.mp4', '.aac', '.wma'}
+                uploaded_files = request.FILES.getlist('pack_files') or request.FILES.getlist('auto_upload')
+                valid_files = [f for f in uploaded_files if Path(f.name).suffix.lower() in valid_audio_extensions]
+                total_files = len(valid_files)
+
+                if total_files > 0:
+                    yield json.dumps({"status": "progress", "step": "ai_categorizing", "percent": 20, "message": f"🤖 Categorizing {total_files} samples using OpenRouter AI..."}) + "\n"
+                    
+                    file_paths = [f.name for f in valid_files]
+                    classification = classify_files_with_openrouter(file_paths)
+                    
+                    yield json.dumps({"status": "progress", "step": "saving_samples", "percent": 35, "message": f"💾 AI categorization complete. Saving {total_files} samples to database..."}) + "\n"
+                    
+                    cat_counts = {}
+                    for idx, f in enumerate(valid_files, start=1):
+                        cat = classification.get(f.name, 'drums')
+                        cat_counts[cat] = cat_counts.get(cat, 0) + 1
+                        instance = Sample(file=f, pack=pack, category=cat)
+                        instance.save()
+                        if jtags:
+                            instance.tags.add(*jtags)
+                        
+                        if idx % 5 == 0 or idx == total_files:
+                            pct = int(35 + (idx / total_files) * 60)
+                            yield json.dumps({
+                                "status": "progress",
+                                "step": "saving_samples",
+                                "percent": pct,
+                                "current": idx,
+                                "total": total_files,
+                                "message": f"💾 Processing samples & waveforms ({idx}/{total_files})..."
+                            }) + "\n"
+                    
+                    summary = ", ".join([f"{c.capitalize()}: {n}" for c, n in cat_counts.items()])
+                    msg = f"Successfully uploaded and AI-categorized {total_files} samples for '{pack.name}' ({summary})."
+                    messages.success(request, msg)
+                else:
+                    messages.success(request, f"Successfully created Pack '{pack.name}'.")
+
+                yield json.dumps({
+                    "status": "complete",
+                    "percent": 100,
+                    "message": "🎉 All done! Redirecting...",
+                    "redirect_url": "/admin/library/pack/"
+                }) + "\n"
+
+            except Exception as e:
+                logger.error(f"Error during stream_upload_view: {e}")
+                yield json.dumps({"status": "error", "message": f"Server error: {str(e)}"}) + "\n"
+
+        response = StreamingHttpResponse(event_generator(), content_type='application/x-ndjson')
+        response['X-Accel-Buffering'] = 'no'
+        response['Cache-Control'] = 'no-cache'
+        return response
+
 
     def save_model(self, request: Any, obj: Any, form: Any, change: Any) -> None:
         super().save_model(request, obj, form, change)
@@ -124,12 +209,7 @@ class PackAdmin(admin.ModelAdmin):
             f"Successfully rescanned Key & BPM for {len(samples_to_update)} samples in the selected packs."
         )
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('rescan-all/', self.admin_site.admin_view(self.rescan_all_view), name='pack-rescan-all'),
-        ]
-        return custom_urls + urls
+
 
     def rescan_all_view(self, request):
         samples = Sample.objects.all()
