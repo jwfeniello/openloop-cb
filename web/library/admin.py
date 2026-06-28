@@ -40,21 +40,21 @@ class PackAdmin(admin.ModelAdmin):
         
         valid_audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff', '.m4a', '.mp4', '.aac', '.wma'}
         
-        # 1. Single Pack Folder Auto-Upload via OpenRouter AI
-        auto_files = request.FILES.getlist('auto_upload')
-        if auto_files:
-            valid_auto_files = [f for f in auto_files if Path(f.name).suffix.lower() in valid_audio_extensions]
-            if valid_auto_files:
-                file_paths = [f.name for f in valid_auto_files]
+        # 1. Single Pack Folder Dropzone (Auto-Categorized via AI / Rules)
+        uploaded_files = request.FILES.getlist('pack_files') or request.FILES.getlist('auto_upload')
+        if uploaded_files:
+            valid_files = [f for f in uploaded_files if Path(f.name).suffix.lower() in valid_audio_extensions]
+            if valid_files:
+                file_paths = [f.name for f in valid_files]
                 classification = classify_files_with_openrouter(file_paths)
-                for f in valid_auto_files:
+                for f in valid_files:
                     cat = classification.get(f.name, 'drums')
                     instance = Sample(file=f, pack=obj, category=cat)
                     instance.save()
                     if jtags:
                         instance.tags.add(*jtags)
 
-        # 2. Manual Category Field Uploads
+        # 2. Fallback check for any legacy manual fields if used via API
         for v, n in Sample.categories.choices:
             files = request.FILES.getlist(n.lower())
             for f in files:
@@ -66,6 +66,7 @@ class PackAdmin(admin.ModelAdmin):
                 instance.save()
                 if jtags:
                     instance.tags.add(*jtags)
+
 
     @admin.action(description="Auto-categorize samples with OpenRouter AI")
     def auto_categorize_ai(self, request, queryset):
