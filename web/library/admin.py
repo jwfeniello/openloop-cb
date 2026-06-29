@@ -30,6 +30,12 @@ class PackAdmin(admin.ModelAdmin):
     search_fields = ('name', 'author')
     actions = ['rescan_key_bpm', 'auto_categorize_ai']
 
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        if request.user.is_authenticated:
+            initial['author'] = request.user.get_full_name() or request.user.username
+        return initial
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -50,7 +56,12 @@ class PackAdmin(admin.ModelAdmin):
 
                 yield json.dumps({"status": "progress", "step": "saving_pack", "percent": 5, "message": "Creating Pack metadata record..."}) + "\n"
                 
-                pack = form.save()
+                pack = form.save(commit=False)
+                if not pack.author and request.user.is_authenticated:
+                    pack.author = request.user.get_full_name() or request.user.username
+                pack.save()
+                form.save_m2m()
+
                 jtags = set()
                 raw_tags = request.POST.get("tags", "")
                 if raw_tags:
@@ -116,12 +127,15 @@ class PackAdmin(admin.ModelAdmin):
 
 
     def save_model(self, request: Any, obj: Any, form: Any, change: Any) -> None:
+        if not obj.author and request.user.is_authenticated:
+            obj.author = request.user.get_full_name() or request.user.username
         super().save_model(request, obj, form, change)
         jtags = set()
         raw_tags = request.POST.get("tags", "")
         if raw_tags:
             for i in raw_tags.split(","):
                 if i.strip():
+
                     jtags.add(str(i).strip())
         
         valid_audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aif', '.aiff', '.m4a', '.mp4', '.aac', '.wma'}
